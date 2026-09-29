@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Poker-Abrechnung</title>
+<style>
+:root{
+  --bg1:#e8e4ff;--bg2:#d9f4ec;--bg3:#ffe6dc;
+  --ink:#2a2950;--mute:#6b6a94;
+  --glass:rgba(255,255,255,.55);--line:rgba(255,255,255,.85);
+  --acc:#7c83ff;--acc2:#4fd1b8;--plus:#1f9e83;--minus:#d9607a;--warn:#c9781f;
+  --shadow:0 10px 40px rgba(124,131,255,.18);
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  min-height:100vh;color:var(--ink);
+  font-family:"Segoe UI","Helvetica Neue",Arial,system-ui,sans-serif;
+  background:radial-gradient(900px 600px at 10% 0%,var(--bg1),transparent 60%),
+             radial-gradient(800px 600px at 100% 20%,var(--bg2),transparent 60%),
+             radial-gradient(800px 700px at 30% 100%,var(--bg3),transparent 60%),#f4f2ff;
+  background-attachment:fixed;padding:28px 16px 60px;
+}
+.wrap{max-width:920px;margin:0 auto}
+h1{font-size:clamp(1.7rem,4.5vw,2.6rem);margin:0 0 4px;letter-spacing:.14em;font-weight:300}
+h1 b{font-weight:700;background:linear-gradient(90deg,var(--acc),var(--acc2));-webkit-background-clip:text;background-clip:text;color:transparent}
+.sub{color:var(--mute);margin:0 0 26px}
+.panel{background:var(--glass);border:1px solid var(--line);border-radius:26px;padding:22px;margin-bottom:20px;
+  backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);box-shadow:var(--shadow)}
+h2{font-size:1.05rem;margin:0 0 14px;font-weight:600;letter-spacing:.04em}
+label{display:block;font-size:.85rem;color:var(--mute);margin-bottom:6px}
+input{
+  width:100%;font:inherit;color:var(--ink);padding:11px 14px;border-radius:14px;
+  border:1.5px solid rgba(124,131,255,.25);background:rgba(255,255,255,.75);outline:none;
+  transition:border-color .2s,box-shadow .2s;
+}
+input:focus-visible{border-color:var(--acc);box-shadow:0 0 0 4px rgba(124,131,255,.22)}
+input.bad{border-color:var(--minus);box-shadow:0 0 0 4px rgba(217,96,122,.15)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.hint{font-size:.78rem;color:var(--mute);margin-top:6px}
+.top{display:grid;grid-template-columns:1fr 200px;gap:20px;align-items:center}
+.orb{position:relative;width:180px;height:180px;margin:0 auto}
+.orb svg{width:100%;height:100%;transform:rotate(-90deg)}
+.orb .t{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;font-size:.8rem;color:var(--mute);padding:0 26px}
+.orb .t strong{font-size:1.35rem;color:var(--ink);letter-spacing:.02em}
+.orb.ok .t strong{color:var(--plus)}.orb.off .t strong{color:var(--warn)}
+.ring-bg{stroke:rgba(124,131,255,.18)}
+.ring{stroke:var(--warn);transition:stroke .4s,stroke-dashoffset .5s}
+.orb.ok .ring{stroke:var(--acc2)}
+.head,.row{display:grid;grid-template-columns:1.5fr 1fr 1fr 44px;gap:10px;align-items:center}
+.head{font-size:.8rem;color:var(--mute);padding:0 2px 6px}
+.row{margin-bottom:10px}
+.icon{width:44px;height:44px;border-radius:14px;border:1.5px solid rgba(217,96,122,.35);background:rgba(255,255,255,.6);
+  color:var(--minus);font-size:1.2rem;cursor:pointer;transition:background .2s}
+.icon:hover{background:rgba(217,96,122,.12)}
+.icon:focus-visible,.btn:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+.btn{font:inherit;font-weight:600;border:0;border-radius:16px;padding:13px 22px;cursor:pointer;color:#fff;
+  background:linear-gradient(120deg,var(--acc),#6ec5f0 60%,var(--acc2));box-shadow:0 8px 24px rgba(124,131,255,.3);
+  transition:transform .15s,box-shadow .2s}
+.btn:hover{transform:translateY(-1px)}
+.btn.ghost{background:rgba(255,255,255,.7);color:var(--ink);box-shadow:none;border:1.5px solid rgba(124,131,255,.3)}
+.btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:8px}
+.errors{margin:16px 0 0;padding:14px 16px;border-radius:16px;background:rgba(255,225,220,.7);border:1px solid rgba(217,96,122,.35);color:#8b2f45;font-size:.9rem;display:none}
+.errors ul{margin:0;padding-left:18px}
+.res{display:none}
+.bal{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px;margin-bottom:22px}
+.card{border-radius:18px;padding:14px 16px;background:rgba(255,255,255,.7);border:1px solid var(--line)}
+.card .n{font-weight:600;overflow-wrap:anywhere}
+.card .v{font-size:1.25rem;font-weight:700;margin-top:2px}
+.card .s{font-size:.78rem;color:var(--mute)}
+.pos{color:var(--plus)}.neg{color:var(--minus)}
+.pay{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:14px 16px;margin-bottom:10px;border-radius:18px;
+  background:linear-gradient(100deg,rgba(124,131,255,.14),rgba(79,209,184,.16));border:1px solid var(--line)}
+.pay .who{font-weight:600;overflow-wrap:anywhere}
+.pay .arrow{color:var(--acc);font-size:1.2rem}
+.pay .amt{margin-left:auto;font-weight:700;font-size:1.15rem}
+.done{text-align:center;padding:18px;color:var(--plus);font-weight:600}
+@media(max-width:640px){
+  .top{grid-template-columns:1fr}
+  .head{display:none}
+  .row{grid-template-columns:1fr 1fr 44px;background:rgba(255,255,255,.45);padding:12px;border-radius:18px}
+  .row .name{grid-column:1/-1}
+  .row .last{grid-column:3;grid-row:2}
+  .grid2{grid-template-columns:1fr}
+}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>POKER<b>ABRECHNUNG</b></h1>
+  <p class="sub">Endstände eintragen, Chipwert festlegen – die Ausgleichszahlungen werden mit möglichst wenigen Überweisungen berechnet.</p>
+
+  <section class="panel top" aria-labelledby="h-set">
+    <div>
+      <h2 id="h-set">Spieleinstellungen</h2>
+      <div class="grid2">
+        <div>
+          <label for="value">Wert pro Chip in Euro</label>
+          <input id="value" inputmode="decimal" value="0,10" autocomplete="off">
+          <div class="hint">Beispiel: 0,10 bedeutet 100 Chips = 10 €.</div>
+        </div>
+        <div>
+          <label for="startdef">Startchips pro Spieler</label>
+          <input id="startdef" inputmode="numeric" value="1000" autocomplete="off">
+          <div class="hint">Gilt für neue Spieler. Pro Spieler änderbar (z. B. bei Rebuy).</div>
+        </div>
+      </div>
+    </div>
+    <div class="orb off" id="orb" role="status" aria-live="polite">
+      <svg viewBox="0 0 120 120"><circle class="ring-bg" cx="60" cy="60" r="52" fill="none" stroke-width="8"/>
+        <circle class="ring" id="ring" cx="60" cy="60" r="52" fill="none" stroke-width="8" stroke-linecap="round" stroke-dasharray="326.7" stroke-dashoffset="326.7"/></svg>
+      <div class="t"><strong id="orbMain">–</strong><span id="orbSub">Chip-Bilanz</span></div>
+    </div>
+  </section>
+
+  <section class="panel" aria-labelledby="h-pl">
+    <h2 id="h-pl">Spieler und Endstände</h2>
+    <div class="head"><span>Name</span><span>Eingesetzte Chips</span><span>Chips am Ende</span><span></span></div>
+    <div id="rows"></div>
+    <div class="actions">
+      <button class="btn ghost" id="add" type="button">Spieler hinzufügen</button>
+      <button class="btn" id="calc" type="button">Abrechnung berechnen</button>
+      <button class="btn ghost" id="reset" type="button">Alles zurücksetzen</button>
+    </div>
+    <div class="errors" id="errors" role="alert"></div>
+  </section>
+
+  <section class="panel res" id="res" aria-labelledby="h-res">
+    <h2 id="h-res">Ergebnis</h2>
+    <div class="bal" id="bal"></div>
+    <h2>Wer zahlt wem</h2>
+    <div id="pays"></div>
+    <div class="actions"><button class="btn ghost" id="copy" type="button">Ergebnis kopieren</button></div>
+  </section>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var MIN=2, MAX=12;
+  var players=[];
+  var lastText="";
+  var $=function(id){return document.getElementById(id)};
+  var eur=new Intl.NumberFormat("de-DE",{style:"currency",currency:"EUR"});
+  var nf=new Intl.NumberFormat("de-DE",{maximumFractionDigits:2});
+
+  function parse(v){
+    v=String(v==null?"":v).trim();
+    if(!/^\d+([.,]\d+)?$/.test(v)) return NaN;
+    return parseFloat(v.replace(",","."));
+  }
+  function cents(c){return eur.format(c/100)}
+
+  function el(tag,attrs,text){
+    var e=document.createElement(tag);
+    if(attrs) for(var k in attrs) e.setAttribute(k,attrs[k]);
+    if(text!=null) e.textContent=text;
+    return e;
+  }
+
+  function addPlayer(){
+    if(players.length>=MAX) return;
+    var d=$("startdef").value.trim();
+    players.push({name:"",start:d,end:""});
+    render();
+    var inputs=$("rows").querySelectorAll(".name input");
+    if(inputs.length) inputs[inputs.length-1].focus();
+  }
+
+  function render(){
+    var rows=$("rows"); rows.innerHTML="";
+    players.forEach(function(p,i){
+      var row=el("div",{"class":"row"});
+      var f=function(cls,label,val,mode,ph,key){
+        var w=el("div",{"class":cls});
+        var l=el("label",{"for":"f"+key+i},label); l.style.display="none";
+        var inp=el("input",{id:"f"+key+i,"aria-label":label+" "+(i+1),autocomplete:"off"});
+        if(mode) inp.setAttribute("inputmode",mode);
+        if(ph) inp.setAttribute("placeholder",ph);
+        if(key==="n") inp.setAttribute("maxlength","30");
+        inp.value=val;
+        inp.addEventListener("input",function(){p[{n:"name",s:"start",e:"end"}[key]]=inp.value;inp.classList.remove("bad");updateOrb()});
+        w.appendChild(l);w.appendChild(inp);return w;
+      };
+      row.appendChild(f("name","Name",p.name,null,"Spieler "+(i+1),"n"));
+      row.appendChild(f("","Eingesetzte Chips",p.start,"numeric","z. B. 1000","s"));
+      row.appendChild(f("","Chips am Ende",p.end,"numeric","z. B. 1350","e"));
+      var del=el("button",{"class":"icon last",type:"button","aria-label":"Spieler "+(i+1)+" entfernen"},"×");
+      del.disabled=players.length<=MIN; del.style.opacity=del.disabled?".35":"1";
+      del.addEventListener("click",function(){players.splice(i,1);render()});
+      row.appendChild(del);
+      rows.appendChild(row);
+    });
+    $("add").disabled=players.length>=MAX;
+    updateOrb();
+  }
+
+  function updateOrb(){
+    var s=0,e=0,any=false;
+    players.forEach(function(p){
+      var a=parse(p.start),b=parse(p.end);
+      if(!isNaN(a)) s+=a; if(!isNaN(b)&&p.end!=="") {e+=b;any=true;}
+    });
+    var orb=$("orb"),ring=$("ring");
+    var diff=e-s, C=326.7;
+    if(!any||s===0){
+      orb.className="orb off";$("orbMain").textContent="–";$("orbSub").textContent="Endstände eintragen";
+      ring.style.strokeDashoffset=C;return;
+    }
+    var ratio=Math.min(e,s)/Math.max(e,s);
+    ring.style.strokeDashoffset=C*(1-ratio);
+    if(Math.abs(diff)<1e-9){
+      orb.className="orb ok";$("orbMain").textContent="Stimmt";$("orbSub").textContent=nf.format(e)+" Chips im Spiel";
+    }else{
+      orb.className="orb off";
+      $("orbMain").textContent=(diff>0?"+":"−")+nf.format(Math.abs(diff));
+      $("orbSub").textContent=diff>0?"Chips zu viel am Ende":"Chips fehlen am Ende";
+    }
+  }
+
+  function validate(){
+    var errs=[],bad=[];
+    var value=parse($("value").value);
+    if(isNaN(value)||value<=0){errs.push("Der Wert pro Chip muss eine Zahl größer als 0 sein (z. B. 0,10).");bad.push($("value"));}
+    else if(value>10000){errs.push("Der Wert pro Chip ist unrealistisch hoch. Bitte prüfen.");bad.push($("value"));}
+    if(players.length<MIN) errs.push("Mindestens "+MIN+" Spieler werden benötigt.");
+    var seen={},data=[],sumS=0,sumE=0;
+    players.forEach(function(p,i){
+      var nm=p.name.trim().replace(/\s+/g," ");
+      var iN=$("fn"+i),iS=$("fs"+i),iE=$("fe"+i);
+      if(!nm){errs.push("Spieler "+(i+1)+": Name fehlt.");bad.push(iN);}
+      else{
+        var k=nm.toLowerCase();
+        if(seen[k]){errs.push("Der Name „"+nm+"“ kommt mehrfach vor. Bitte eindeutige Namen verwenden.");bad.push(iN);}
+        seen[k]=true;
+      }
+      var s=parse(p.start),e=parse(p.end);
+      var lbl=nm||("Spieler "+(i+1));
+      if(isNaN(s)){errs.push(lbl+": Eingesetzte Chips fehlen oder sind keine gültige Zahl.");bad.push(iS);}
+      else if(s===0){errs.push(lbl+": Eingesetzte Chips müssen größer als 0 sein.");bad.push(iS);}
+      if(isNaN(e)){errs.push(lbl+": Endstand fehlt oder ist keine gültige Zahl (0 ist erlaubt).");bad.push(iE);}
+      if(!isNaN(s)&&!isNaN(e)){sumS+=s;sumE+=e;}
+      data.push({name:nm,start:s,end:e});
+    });
+    if(!errs.length&&Math.abs(sumS-sumE)>1e-9){
+      var d=sumE-sumS;
+      errs.push("Die Chips gehen nicht auf: Am Ende sind es "+nf.format(sumE)+", eingesetzt wurden "+nf.format(sumS)+" ("+(d>0?"+":"−")+nf.format(Math.abs(d))+"). Bitte Endstände prüfen.");
+      bad=bad.concat(Array.prototype.slice.call($("rows").querySelectorAll(".row div:nth-child(3) input")));
+    }
+    return {errs:errs,bad:bad,data:data,value:value};
+  }
+
+  function settle(data,value){
+    var net=data.map(function(p){return {name:p.name,c:Math.round((p.end-p.start)*value*100),chips:p.end-p.start}});
+    var sum=net.reduce(function(a,n){return a+n.c},0);
+    if(sum!==0){ // Rundungsrest dem betragsmäßig größten Posten zuschlagen
+      var idx=0;net.forEach(function(n,i){if(Math.abs(n.c)>Math.abs(net[idx].c))idx=i});
+      net[idx].c-=sum;
+    }
+    var cr=net.filter(function(n){return n.c>0}).map(function(n){return {name:n.name,c:n.c}});
+    var db=net.filter(function(n){return n.c<0}).map(function(n){return {name:n.name,c:-n.c}});
+    var tx=[];
+    while(cr.length&&db.length){
+      cr.sort(function(a,b){return b.c-a.c});db.sort(function(a,b){return b.c-a.c});
+      var a=Math.min(cr[0].c,db[0].c);
+      tx.push({from:db[0].name,to:cr[0].name,c:a});
+      cr[0].c-=a;db[0].c-=a;
+      if(cr[0].c===0)cr.shift();
+      if(db[0].c===0)db.shift();
+    }
+    return {net:net,tx:tx};
+  }
+
+  function showErrors(errs,bad){
+    var box=$("errors");box.innerHTML="";
+    if(!errs.length){box.style.display="none";return;}
+    box.appendChild(el("strong",null,"Bitte korrigieren:"));
+    var ul=el("ul");errs.forEach(function(m){ul.appendChild(el("li",null,m))});
+    box.appendChild(ul);box.style.display="block";
+    bad.forEach(function(i){if(i)i.classList.add("bad")});
+    box.scrollIntoView({behavior:"smooth",block:"nearest"});
+  }
+
+  function calc(){
+    document.querySelectorAll("input.bad").forEach(function(i){i.classList.remove("bad")});
+    var v=validate();
+    showErrors(v.errs,v.bad);
+    if(v.errs.length){$("res").style.display="none";return;}
+    var r=settle(v.data,v.value);
+    var bal=$("bal");bal.innerHTML="";
+    var sorted=r.net.slice().sort(function(a,b){return b.c-a.c});
+    var lines=["Poker-Abrechnung ("+nf.format(v.value)+" € pro Chip)",""];
+    sorted.forEach(function(n){
+      var c=el("div",{"class":"card"});
+      c.appendChild(el("div",{"class":"n"},n.name));
+      var val=el("div",{"class":"v "+(n.c>0?"pos":n.c<0?"neg":"")},(n.c>0?"+":n.c<0?"−":"")+cents(Math.abs(n.c)));
+      c.appendChild(val);
+      c.appendChild(el("div",{"class":"s"},(n.chips>0?"+":n.chips<0?"−":"±")+nf.format(Math.abs(n.chips))+" Chips"));
+      bal.appendChild(c);
+      lines.push(n.name+": "+(n.c>0?"+":n.c<0?"−":"")+cents(Math.abs(n.c)));
+    });
+    var pays=$("pays");pays.innerHTML="";
+    lines.push("");
+    if(!r.tx.length){
+      pays.appendChild(el("div",{"class":"done"},"Alle sind quitt – niemand muss zahlen."));
+      lines.push("Alle sind quitt.");
+    }else{
+      r.tx.forEach(function(t){
+        var p=el("div",{"class":"pay"});
+        p.appendChild(el("span",{"class":"who"},t.from));
+        p.appendChild(el("span",{"class":"arrow","aria-label":"zahlt an"},"→"));
+        p.appendChild(el("span",{"class":"who"},t.to));
+        p.appendChild(el("span",{"class":"amt"},cents(t.c)));
+        pays.appendChild(p);
+        lines.push(t.from+" zahlt "+cents(t.c)+" an "+t.to);
+      });
+    }
+    lastText=lines.join("\n");
+    $("res").style.display="block";
+    $("res").scrollIntoView({behavior:"smooth",block:"start"});
+  }
+
+  function copy(){
+    var b=$("copy"),done=function(ok){b.textContent=ok?"Kopiert":"Kopieren nicht möglich";setTimeout(function(){b.textContent="Ergebnis kopieren"},1800)};
+    if(navigator.clipboard&&navigator.clipboard.writeText){
+      navigator.clipboard.writeText(lastText).then(function(){done(true)},function(){fallback()});
+    }else fallback();
+    function fallback(){
+      var t=el("textarea");t.value=lastText;t.style.position="fixed";t.style.opacity="0";
+      document.body.appendChild(t);t.select();
+      var ok=false;try{ok=document.execCommand("copy")}catch(e){}
+      document.body.removeChild(t);done(ok);
+    }
+  }
+
+  function reset(){
+    if(!confirm("Wirklich alle Eingaben löschen?")) return;
+    players=[];for(var i=0;i<4;i++)players.push({name:"",start:$("startdef").value.trim(),end:""});
+    $("res").style.display="none";$("errors").style.display="none";render();
+  }
+
+  $("add").addEventListener("click",addPlayer);
+  $("calc").addEventListener("click",calc);
+  $("copy").addEventListener("click",copy);
+  $("reset").addEventListener("click",reset);
+  $("value").addEventListener("input",function(){this.classList.remove("bad")});
+  document.addEventListener("keydown",function(e){
+    if(e.key==="Enter"&&e.target.tagName==="INPUT"&&e.target.closest("#rows")){e.preventDefault();calc();}
+  });
+
+  for(var i=0;i<4;i++)players.push({name:"",start:"1000",end:""});
+  render();
+})();
+</script>
+</body>
+</html>
